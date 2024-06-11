@@ -1,0 +1,26 @@
+{
+  "name": "threejs-lightning-sample",
+  "version": "1.0.0",
+  "description": "A lightning sample implemented by threejs.",
+  "main": "lightning.js",
+  "scripts": {
+    "dev": "vite"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nieyuyao/threejs-lightning-sample.git"
+  },
+  "author": "nieyuyao",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nieyuyao/threejs-lightning-sample/issues"
+  },
+  "homepage": "https://github.com/nieyuyao/threejs-lightning-sample#readme",
+  "devDependencies": {
+    "vite": "^5.4.3"
+  },
+  "dependencies": {
+    "three": "^0.168.0",
+    "three.meshline": "^1.4.0"
+  }
+}
