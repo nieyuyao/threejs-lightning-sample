@@ -1,12 +1,4 @@
-import {
-  WebGLRenderer,
-  OrthographicCamera,
-  Scene,
-  Color,
-  SRGBColorSpace,
-  Clock,
-  Vector2,
-} from 'three'
+import { WebGLRenderer, OrthographicCamera, Scene, Color, SRGBColorSpace, Clock, Vector2 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { Lightning } from './lightning'
 
@@ -29,17 +21,10 @@ document.body.appendChild(renderer.domElement)
 const scene = new Scene()
 scene.background = new Color(0, 0, 0)
 
-const camera = new OrthographicCamera(
-  -width / 2,
-  width / 2,
-  height / 2,
-  -height / 2,
-  -10,
-  1000,
-)
+const camera = new OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, -10, 1000)
 scene.add(camera)
 
-const lightning = new Lightning(new Vector2(-20, 300), new Vector2(20, -300), 6, 100)
+const lightning = new Lightning(new Vector2(-20, 300), new Vector2(20, -300), 8, 100)
 
 scene.add(lightning)
 
