@@ -3,6 +3,7 @@ import { Line2 } from 'three/examples/jsm/lines/Line2'
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry'
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
 
+
 class Bolt {
   start = new Vector2()
 
@@ -27,6 +28,8 @@ const clamp = (min, max) => {
   return min + (max - min) * Math.random()
 }
 
+
+
 export class Lightning extends Object3D {
   bolts = []
 
@@ -35,6 +38,8 @@ export class Lightning extends Object3D {
   segments = []
 
   ideallyLength = 1
+
+  canvasSize = { width: 1, height: 1 }
 
   /**
    * @param {Vector2} start
@@ -90,7 +95,7 @@ export class Lightning extends Object3D {
   createSegments() {
     const { start: lightingStart, ideallyLength } = this
     this.bolts.forEach((bolt) => {
-      if (bolt.width < 0.3) {
+      if (bolt.width < 0.6) {
         return
       }
       const geo = new LineGeometry()
@@ -115,7 +120,15 @@ export class Lightning extends Object3D {
     })
   }
 
-  update() {
-    // TODO:
+  getBackbone() {
+    return this.bolts.filter(bolt => !bolt.isBranch)
+  }
+
+  update(elapsed) {
+    const identity = 1 - elapsed / 5
+    this.segments.forEach(segment => {
+      segment.material.opacity *= identity
+    })
+    
   }
 }

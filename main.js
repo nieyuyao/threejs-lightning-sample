@@ -1,6 +1,7 @@
 import { WebGLRenderer, OrthographicCamera, Scene, Color, SRGBColorSpace, Clock, Vector2 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { Lightning } from './lightning'
+import { Halation } from './halation'
 
 const renderer = new WebGLRenderer({
   antialias: true,
@@ -24,19 +25,24 @@ scene.background = new Color(0, 0, 0)
 const camera = new OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, -10, 1000)
 scene.add(camera)
 
+const halation = new Halation()
+
 const lightning = new Lightning(new Vector2(-20, 300), new Vector2(20, -300), 8, 100)
 
-scene.add(lightning)
+halation.updateByLightningBackbone(lightning.getBackbone())
 
-const orbit = new OrbitControls(camera, renderer.domElement)
+scene.add(halation)
+
+scene.add(lightning)
 
 const clock = new Clock()
 
 const update = () => {
   const time = clock.getElapsedTime()
   renderer.clear()
+  lightning.update(time)
+  halation.updateByLightningBackbone(lightning.getBackbone())
   renderer.render(scene, camera)
-  orbit.update()
   requestAnimationFrame(update)
 }
 
