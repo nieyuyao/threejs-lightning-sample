@@ -2,4 +2,4 @@ A lightning sample implemented by threejs.
 
 #### Screenshot
 
-<img src="./demo.png">
+<img src="./demo.gif">

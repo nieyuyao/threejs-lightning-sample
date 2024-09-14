@@ -4,7 +4,7 @@
   "description": "A lightning sample implemented by threejs.",
   "main": "lightning.js",
   "scripts": {
-    "dev": "vite"
+    "dev": "vite --port 9000"
   },
   "repository": {
     "type": "git",
@@ -20,7 +20,7 @@
     "vite": "^5.4.3"
   },
   "dependencies": {
-    "three": "^0.168.0",
-    "three.meshline": "^1.4.0"
+    "dat.gui": "^0.7.9",
+    "three": "^0.168.0"
   }
 }

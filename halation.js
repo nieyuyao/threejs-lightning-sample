@@ -3,12 +3,15 @@ import { FullScreenGeometry } from './full-screen-geometry'
 
 // generate halation from lighting backbone
 export class Halation extends Mesh {
+  name = 'Halation'
+  
   constructor() {
     const geometry = new FullScreenGeometry()
     const material = new ShaderMaterial({
       transparent: true,
       uniforms: {
         backbone: { value: [] },
+        backboneLength: { value: 512 },
         cameraWorldMat: { value: new Matrix4() }
       },
       vertexShader: `
@@ -23,6 +26,7 @@ export class Halation extends Mesh {
       fragmentShader: `
         #define EFFECT_MAX_DISTANCE 600.0
 
+        uniform int backboneLength;
         uniform vec2 backbone[512];
         uniform mat4 cameraWorldMat;
         varying vec2 vUv;
@@ -35,7 +39,7 @@ export class Halation extends Mesh {
 
         float getMinDistance(vec2 p) {
           float minDistance = 10000000.0;
-          for (int i = 0; i < 512; i += 2) {
+          for (int i = 0; i < backboneLength; i += 2) {
             vec2 start = backbone[i];
             vec2 end = backbone[i + 1];
             vec2 e1 = start - p;
@@ -76,32 +80,34 @@ export class Halation extends Mesh {
   }
 
   updateByLightningBackbone(backbone) {
-    const vectors = backbone.reduce((prev, bolt) => {
-      prev.push(bolt.start)
-      prev.push(bolt.end)
-      return prev
-    }, [])
-    this.material.uniforms.backbone.value = vectors
-    this.backbone = vectors
+    if (backbone.length <= 256) {
+      this.material.uniforms.backbone.value = backbone.reduce((prev, bolt) => {
+        prev.push(bolt.start)
+        prev.push(bolt.end)
+        return prev
+      }, [])
+      this.material.uniforms.backboneLength.value = backbone.length * 2
+      // padding to 256
+      for (let i = 0; i < 256 - backbone.length; i++) {
+        this.material.uniforms.backbone.value.push(new Vector2())
+        this.material.uniforms.backbone.value.push(new Vector2())
+      }
+    } else {
+      const interval = Math.ceil(backbone.length / 256)
+      this.material.uniforms.backbone.value = backbone.reduce((prev, bolt, i) => {
+        if (i % interval !== 0) {
+          return prev
+        }
+        prev.push(bolt.start)
+        prev.push(bolt.end)
+        return prev
+      }, [])
+      this.material.uniforms.backboneLength.value = 512
+    }
   }
 
-  minDistance(x, y) {
-    const p = new Vector2(x, y)
-    const { backbone } = this
-    for (let i = 0; i < 512; i += 2) {
-      const start = backbone[i]
-      const end = backbone[i + 1]
-      const e1 = start.clone().sub(p)
-      const e2 = end.clone().sub(p)
-      const e3 = start.clone().sub(end)
-      const d1 = e1.length()
-      const d2 = e2.length()
-      if (e1.dot(e3) < 0 || e2.dot(e3) < 0) {
-        return Math.min(d1, d2)
-      }
-      const e3Dir = e3.normalize()
-
-      return Math.abs(e3Dir.cross(e1))
-    }
+  dispose() {
+    this.geometry.dispose()
+    this.material.dispose()
   }
 }

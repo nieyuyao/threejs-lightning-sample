@@ -1,8 +1,8 @@
-import { Color, Object3D, Vector2, Vector3 } from 'three'
+import { Object3D, Vector2, Vector3 } from 'three'
 import { Line2 } from 'three/examples/jsm/lines/Line2'
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry'
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
-
+import { Halation } from './halation'
 
 class Bolt {
   start = new Vector2()
@@ -24,12 +24,6 @@ class Bolt {
   }
 }
 
-const clamp = (min, max) => {
-  return min + (max - min) * Math.random()
-}
-
-
-
 export class Lightning extends Object3D {
   bolts = []
 
@@ -39,7 +33,7 @@ export class Lightning extends Object3D {
 
   ideallyLength = 1
 
-  canvasSize = { width: 1, height: 1 }
+  halation = new Halation()
 
   /**
    * @param {Vector2} start
@@ -56,6 +50,8 @@ export class Lightning extends Object3D {
     this.amplitude = amplitude
     this.bolts = [new Bolt(this.start, this.end, 4, 1, false)]
     this.createLightBolts()
+    this.halation.updateByLightningBackbone(this.getBackbone())
+    this.add(this.halation)
     this.createSegments()
   }
 
@@ -70,7 +66,9 @@ export class Lightning extends Object3D {
         const { start, end } = this.bolts[j]
         const dir = end.clone().sub(start)
         const nor = new Vector2(-dir.y, dir.x).normalize()
-        const offset = nor.multiplyScalar(clamp(-offsetAmount, offsetAmount))
+        let amplitude = offsetAmount / 2 + (offsetAmount / 2) * Math.random()
+        amplitude *= Math.random() > 0.5 ? 1 : -1
+        const offset = nor.multiplyScalar(amplitude)
         const midPoint = start.clone().add(dir.clone().multiplyScalar(0.5)).add(offset)
         newBolts.push(new Bolt(start, midPoint, parentBolt.width, 1, parentBolt.isBranch))
         // generate branch
@@ -80,8 +78,8 @@ export class Lightning extends Object3D {
         if (distanceToStart > 40 && Math.random() < (probability * (boltsAmount - j)) / boltsAmount) {
           const branch = midPoint.clone().sub(start)
           const crossed = branch.cross(end.clone().sub(midPoint)) >= 0 ? -1 : 1
-          const angle = Math.random() * probability * crossed
-          const branchEndPoint = branch.multiplyScalar(probability * 2.4).add(midPoint)
+          const angle = Math.random() * probability * crossed * 1.1
+          const branchEndPoint = branch.multiplyScalar(probability * 2.6).add(midPoint)
           branchEndPoint.rotateAround(midPoint, angle)
           newBolts.push(new Bolt(midPoint, branchEndPoint, parentBolt.width * 0.6, parentBolt.opacity * 0.8, true))
         }
@@ -94,8 +92,10 @@ export class Lightning extends Object3D {
 
   createSegments() {
     const { start: lightingStart, ideallyLength } = this
+    const startColor = new Vector3(0.02, 0.16, 0.53)
+    const endColor = new Vector3(0.30, 0.5, 0.82)
     this.bolts.forEach((bolt) => {
-      if (bolt.width < 0.6) {
+      if (bolt.width < 1) {
         return
       }
       const geo = new LineGeometry()
@@ -103,17 +103,29 @@ export class Lightning extends Object3D {
         linewidth: bolt.width,
         opacity: bolt.opacity,
         transparent: true,
-        vertexColors: true
+        vertexColors: true,
       })
       geo.setPositions([bolt.start.x, bolt.start.y, 0, bolt.end.x, bolt.end.y, 0])
       // calculate vertex color
-      // rgb(1, 1, 1) => rgb(0.26, 0.3, 0.82)
-      const scalar = bolt.isBranch
-        ? Math.pow((bolt.start.distanceTo(lightingStart) / ideallyLength) * (2 / bolt.opacity), 2)
-        : Math.pow((bolt.start.distanceTo(lightingStart) / ideallyLength), 2)
-      const c = new Vector3(0.1, 0.1, 0.93).sub(new Vector3(1, 1, 1)).multiplyScalar(Math.min(1, scalar)).add(new Vector3(1, 1, 1))
+      const startColorInterp = bolt.isBranch
+        ? Math.pow((bolt.start.distanceTo(lightingStart) / ideallyLength * 0.8) * (2 / bolt.opacity), 2)
+        : Math.pow(bolt.start.distanceTo(lightingStart) / ideallyLength * 0.8, 2)
+      const endColorInterp = bolt.isBranch
+        ? Math.pow((bolt.end.distanceTo(lightingStart) / ideallyLength * 0.8) * (2 / bolt.opacity), 2)
+        : Math.pow(bolt.end.distanceTo(lightingStart) / ideallyLength * 0.8, 2)
 
-      geo.setColors([...c.toArray(), ...c.toArray()])
+      const startC = startColor
+        .clone()
+        .sub(endColor)
+        .multiplyScalar(Math.min(1, startColorInterp))
+        .add(endColor)
+      const endC = startColor
+        .clone()
+        .sub(endColor)
+        .multiplyScalar(Math.min(1, endColorInterp))
+        .add(endColor)
+
+      geo.setColors([...startC.toArray(), ...endC.toArray()])
       const segment = new Line2(geo, material)
       this.add(segment)
       this.segments.push(segment)
@@ -121,14 +133,25 @@ export class Lightning extends Object3D {
   }
 
   getBackbone() {
-    return this.bolts.filter(bolt => !bolt.isBranch)
+    return this.bolts.filter((bolt) => !bolt.isBranch)
   }
 
   update(elapsed) {
-    const identity = 1 - elapsed / 5
-    this.segments.forEach(segment => {
+    const identity = Math.max(0, 1 - elapsed / 2)
+    if (identity <= 0.2) {
+      this.dispatchEvent({ type: 'die' })
+      return
+    }
+    this.segments.forEach((segment) => {
       segment.material.opacity *= identity
     })
-    
+  }
+
+  dispose() {
+    this.segments.forEach((segment) => {
+      segment.geometry.dispose()
+      segment.material.dispose()
+    })
+    this.halation.dispose()
   }
 }
